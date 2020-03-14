@@ -7,7 +7,6 @@
 #include "SPIFFS.h"
 #include "RTClib.h"
 
-
 #define ONE_WIRE_BUS 4					// One-wire data wire is plugged TO GPIO
 
 RTC_DS3231 rtc;
@@ -22,9 +21,14 @@ long count = 0;					// for the delay loop to call the read_Temperatures function
 bool ran = false;					// used to call the read_Temperatures function on first run thru the loop
 char varTempUnits[] = "C";		// variable to track temperature unit setting
 int ActiveDateBox;
-int IntnewYear, IntnewMonth, IntnewDay, IntnewHour, IntnewMinute;
+char newYear[5];
+char newMonth[6];
+char newDay[3];
+char newHour[3];
+char newMinute[3];
 char newNumber[5];
 char char_array[5];
+char caseTemperature[3];
 
 // declare Nextion objects using the format: Nex????(page, ID, "name")
 // page 0
@@ -41,7 +45,8 @@ NexText tDate = NexText(0, 10, "tDate");
 NexPage pMenu = NexPage(1, 0,"page1");
 NexText tMain = NexText(1, 1, "tMain");				// return to the main page
 NexText tSwapUnits = NexText(1, 2, "tSwapUnits");	// swap temperature units
-NexText tSetDateTime = NexText(1,3, "tSetDateTime");
+NexText tSetDateTime = NexText(1, 3, "tSetDateTime");
+nexText tCaseTemp = NexText(1, 5, "tCaseTemp");
 //page 2
 NexPage pSetDateTime = NexPage(2, 0, "page2");
 NexText tMain2 = NexText(2, 1, "tMain2");
@@ -133,9 +138,9 @@ void setup() {
 
 	sensors.begin();										// Start the temperature sensors
 	rtc.begin();
+	rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
 	pMain.show();
 	set_temp_units();										// set the temperature units
-
 }
 
 //-------------------------------------------------------
@@ -259,45 +264,82 @@ void bNine_Release(void *ptr) {
 
 //-------------------------------------------------------
 void bSet_Release(void *ptr) {
-	rtc.adjust(DateTime(IntnewYear, IntnewMonth, IntnewDay, IntnewHour, IntnewMinute, 0));
+	int count;
+	char space[] = " ";
+	char colon[] = ":";
+	char newTime[10];
+	char newDate[12];
+	char nullSeconds[3] = "00";
+	char setMonths[12][5]{	"Jan ",
+							"Feb ",
+							"Mar ",
+							"Apr ",
+							"May ",
+							"Jun ",
+							"Jul ",
+							"Aug ",
+							"Sep ",
+							"Oct ",
+							"Nov ",
+							"Dec "};
+
+	count = atoi(newMonth);
+	count = count - 1;
+	Serial.print("new month int: ");
+	Serial.println(count);
+	strcpy(newDate, setMonths[count]);
+	Serial.print("new month char: ");
+	Serial.println(newDate);
+
+	strcat(newDate, newDay);
+	strcat(newDate, space);
+	strcat(newDate, newYear);
+
+	strcpy(newTime, newHour);
+	strcat(newTime, colon);
+	strcat(newTime, newMinute);
+	strcat(newTime, colon);
+	strcat(newTime, nullSeconds);
+
+	Serial.print("new date: ");
+	Serial.println(newDate);
+	Serial.print("new time: ");
+	Serial.println(newTime);
+	rtc.adjust(DateTime(F(newDate), F(newTime)));
 	refesh_date_time_Page();
 }
 
 //-------------------------------------------------------
 void tSetDateTime_Release(void *ptr) {
+	strcpy(newYear, "0");
+	strcpy(newMonth, "0");
+	strcpy(newDay, "0");
+	strcpy(newHour, "0");
+	strcpy(newMinute, "0");
+	strcpy(newNumber, "0");
 	refesh_date_time_Page();
 }
 
 //-------------------------------------------------------
 void refesh_date_time_Page() {
-	strcpy(newNumber, "");
 	pSetDateTime.show();
-	char year[5];
-	char month[3];
-	char day[3];
-	char hour[3];
-	char minute[3];
+	char year[] = "YYYY";
+	char month[] = "MM";
+	char day[] = "DD";
+	char hour[] = "hh";
+	char minute[] = "mm";
 
 	DateTime now = rtc.now();
+	strcpy(year, now.toString(year));
+	strcpy(month, now.toString(month));
+	strcpy(day, now.toString(day));
+	strcpy(hour, now.toString(hour));
+	strcpy(minute, now.toString(minute));
 
-	int intYear = now.year();
-	dtostrf(intYear, 5, 0, year);
 	nSetYear.setText(year);
-
-	int intMonth = now.month();
-	dtostrf(intMonth, 3, 0, month);
 	nSetMonth.setText(month);
-
-	int intDay = now.day();
-	dtostrf(intDay, 3, 0, day);
 	nSetDay.setText(day);
-
-	int intHour = now.hour();
-	dtostrf(intHour, 3, 0, hour);
 	nSetHour.setText(hour);
-
-	int intMinute = now.minute();
-	dtostrf(intMinute, 3, 0, minute);
 	nSetMinute.setText(minute);
 }
 
@@ -308,7 +350,7 @@ void pMain_update(){
 	tUnit1.setText(varTempUnits);
 	tUnit2.setText(varTempUnits);
 	read_Temperatures();
-	//read_time();
+	read_time();
 }
 
 //-------------------------------------------------------
@@ -322,6 +364,10 @@ void pMenu_update() {
 	if(strcmp(varTempUnits, "F") == 0) {
 		tSwapUnits.setText("Change temperature units from F to C");
 	}
+	int cTemp = rtc.getTemperature();
+
+	itoa(cTemp, caseTemperature, 10);
+	tCaseTemp.setText(caseTemperature);
 }
 
 //-------------------------------------------------------
@@ -353,15 +399,13 @@ void tSwapUnits_Release(void *ptr) {
 void loop() {
 	nexLoop(nex_listen_list);
 	if (!ran) {
-		read_Temperatures();
-		read_time();
-		//pMain_update();
+		pMain_update();
 		ran = !ran;
 	}
 	if (count == 14000000) {
 		read_Temperatures();
-		read_time();
-		//pMain_update();
+
+		pMain_update();
 		count = 0;
 	}
 	count = count + 1;
@@ -391,41 +435,20 @@ void read_time(){
 					  	"December, "};
 	char buffy[5];
 	char myHour[3];
-	char myMeridiem[3];
-	char myMinute[3];
+	char myMinute[] = "mm";
 	char myTime[6];
-	char myDay[3];
+	char myDayName[12];
+	char myDayNo[] = "DD";
 	char myDate[30];
+	char myYear[] = "YYYY";
+	int myAm = 1;
 	DateTime now = rtc.now();
-	strcpy(myDay, days[now.dayOfTheWeek()]);
-		//Serial.print("numeric day of the week: ");
-		//Serial.println(now.dayOfTheWeek());
-		//Serial.print("day of the week from array: ");
-		//Serial.println(days[now.dayOfTheWeek()]);
-	strcpy(myDate, myDay);
-	// myDate = myDay;
 
+	strcpy(myDate, days[now.dayOfTheWeek()]);
 	strcat(myDate, months[now.month()-1]);
-	// myDate = myDate + months[now.month()-1];
-		//Serial.print("numeric month: ");
-		//Serial.println(now.month());
-		//Serial.print("month from the array: ");
-		//Serial.println(months[now.month()-1]);
-
-	itoa(now.day(), buffy, 10);
-	strcat(myDate, buffy);
+	strcat(myDate, now.toString(myDayNo));
 	strcat(myDate, ", ");
-
-	// myDate = myDate + String(now.day()) + ", ";
-		//Serial.print("day number: ");
-		//Serial.println(String(now.day()));
-
-	itoa(now.year(), buffy, 10);
-	strcat(myDate, buffy);
-		//myDate = myDate + String(now.year());
-	//Serial.print("year number: ");
-	//Serial.println(String(now.year()));
-
+	strcat(myDate, now.toString(myYear));
 	int myHourInt = now.hour();
 	if (myHourInt < 13) {
 		if (myHourInt > 0){
@@ -435,36 +458,24 @@ void read_time(){
 		if (myHourInt == 0){
 			strcpy(myHour, "12");
 		}
-		strcpy(myMeridiem, "AM");
 	}
 	if (myHourInt > 12) {
 		myHourInt = myHourInt - 12;
 		itoa(myHourInt, buffy, 10);
 		strcpy(myHour, buffy);
-		strcpy(myMeridiem, "PM");
+		myAm = 0;
 	}
-	int intMinute = now.minute();
-		if (intMinute > 9){
-			itoa(intMinute, buffy, 10);
-			strcpy(myMinute, buffy);
-		}
-		if (intMinute < 10){
-			strcpy(myMinute, "0");
-			itoa(intMinute, buffy, 10);
-			strcat(myMinute, buffy);
-		}
 	strcat(myHour, ":");
+	strcpy(buffy, now.toString(myMinute));
 	strcat(myHour, myMinute);
-	//myTime = myHour + ":" + myMinute;
-	//char screenDate[myDate.length() + 1];
-	//char screenTime[myTime.length() + 1];
-	//char screenMeridiem[myMeridiem.length() + 1];
-	//myDate.toCharArray(screenDate, myDate.length()+1);
-	//myTime.toCharArray(screenTime, myTime.length()+1);
-	//myMeridiem.toCharArray(screenMeridiem, myMeridiem.length()+1);
+
 	tDate.setText(myDate);
 	tTime.setText(myHour);
-	tAmPm.setText(myMeridiem);
+	if (myAm == 1){
+		tAmPm.setText("AM");
+		return;
+	}
+	tAmPm.setText("PM");
 }
 
 //-------------------------------------------------------
@@ -533,9 +544,8 @@ void button_press(int keyPressed) {
 				newNumber[strlen(newNumber) -1] = '\0'; //replace it with a NULL
 			}
 		}
-		IntnewYear = atoi(newNumber);
-		//newNumber.toCharArray(char_array, newNumber.length() + 1);
-		nSetYear.setText(char_array);
+		strcpy(newYear, newNumber);
+		nSetYear.setText(newNumber);
 	}
 	if (ActiveDateBox == 1) { // month
 		if (keyPressed < 10) {
@@ -551,9 +561,8 @@ void button_press(int keyPressed) {
 				newNumber[strlen(newNumber) -1] = '\0'; //replace it with a NULL
 			}
 		}
-		IntnewMonth = atoi(newNumber);
-		//newNumber.toCharArray(char_array, newNumber.length() + 1);
-		nSetMonth.setText(char_array);
+		strcpy(newMonth, newNumber);
+		nSetMonth.setText(newNumber);
 	}
 	if (ActiveDateBox == 2) { // day
 		if (keyPressed < 10) {
@@ -568,9 +577,8 @@ void button_press(int keyPressed) {
 				newNumber[strlen(newNumber) -1] = '\0'; //replace it with a NULL
 			}
 		}
-		IntnewDay = atoi(newNumber);
-		//newNumber.toCharArray(char_array, newNumber.length() + 1);
-		nSetDay.setText(char_array);
+		strcpy(newDay, newNumber);
+		nSetDay.setText(newNumber);
 	}
 	if (ActiveDateBox == 3) { // hour
 		if (keyPressed < 10) {
@@ -585,9 +593,8 @@ void button_press(int keyPressed) {
 				newNumber[strlen(newNumber) -1] = '\0'; //replace it with a NULL
 			}
 		}
-		IntnewHour = atoi(newNumber);
-		//newNumber.toCharArray(char_array, newNumber.length() + 1);
-		nSetHour.setText(char_array);
+		strcpy(newHour, newNumber);
+		nSetHour.setText(newNumber);
 	}
 	if (ActiveDateBox == 4) { // minute
 		if (keyPressed < 10) {
@@ -602,8 +609,38 @@ void button_press(int keyPressed) {
 				newNumber[strlen(newNumber) -1] = '\0'; //replace it with a NULL
 			}
 		}
-		IntnewMinute = atoi(newNumber);
-		//newNumber.toCharArray(char_array, newNumber.length() + 1);
-		nSetMinute.setText(char_array);
+		strcpy(newMinute, newNumber);
+		nSetMinute.setText(newNumber);
 	}
+}
+
+void time_test(String Source){
+	DateTime now = rtc.now();
+
+	Serial.print("Time Test from: ");
+	Serial.println(Source);
+    Serial.print(now.year(), DEC);
+    Serial.print('/');
+    Serial.print(now.month(), DEC);
+    Serial.print('/');
+    Serial.print(now.day(), DEC);
+	Serial.println(" ");
+
+    Serial.print(now.hour(), DEC);
+    Serial.print(':');
+    Serial.print(now.minute(), DEC);
+    Serial.print(':');
+    Serial.print(now.second(), DEC);
+	Serial.println(" ");
+}
+
+// Conversions by John Boxall at:
+//https://tronixstuff.com/2014/12/01/tutorial-using-ds1307-and-ds3231-real-time-clock-modules-with-arduino/
+// Convert normal decimal numbers to binary coded decimal
+byte decToBcd(byte val){
+  return( (val/10*16) + (val%10) );
+}
+// Convert binary coded decimal to normal decimal numbers
+byte bcdToDec(byte val){
+  return( (val/16*10) + (val%16) );
 }
