@@ -46,7 +46,7 @@ NexPage pMenu = NexPage(1, 0,"page1");
 NexText tMain = NexText(1, 1, "tMain");				// return to the main page
 NexText tSwapUnits = NexText(1, 2, "tSwapUnits");	// swap temperature units
 NexText tSetDateTime = NexText(1, 3, "tSetDateTime");
-nexText tCaseTemp = NexText(1, 5, "tCaseTemp");
+NexText tCaseTemp = NexText(1, 5, "tCaseTemp");
 //page 2
 NexPage pSetDateTime = NexPage(2, 0, "page2");
 NexText tMain2 = NexText(2, 1, "tMain2");
@@ -138,7 +138,7 @@ void setup() {
 
 	sensors.begin();										// Start the temperature sensors
 	rtc.begin();
-	rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+	// rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
 	pMain.show();
 	set_temp_units();										// set the temperature units
 }
@@ -153,7 +153,6 @@ void nSetYear_Release(void *ptr) {
 	t2.setText("day");
 	t3.setText("hour");
 	t4.setText("minute");
-
 }
 
 //-------------------------------------------------------
@@ -285,37 +284,32 @@ void bSet_Release(void *ptr) {
 
 	count = atoi(newMonth);
 	count = count - 1;
-	Serial.print("new month int: ");
-	Serial.println(count);
 	strcpy(newDate, setMonths[count]);
-	Serial.print("new month char: ");
-	Serial.println(newDate);
-
 	strcat(newDate, newDay);
 	strcat(newDate, space);
 	strcat(newDate, newYear);
-
 	strcpy(newTime, newHour);
 	strcat(newTime, colon);
 	strcat(newTime, newMinute);
 	strcat(newTime, colon);
 	strcat(newTime, nullSeconds);
-
-	Serial.print("new date: ");
-	Serial.println(newDate);
-	Serial.print("new time: ");
-	Serial.println(newTime);
 	rtc.adjust(DateTime(F(newDate), F(newTime)));
 	refesh_date_time_Page();
 }
 
 //-------------------------------------------------------
 void tSetDateTime_Release(void *ptr) {
-	strcpy(newYear, "0");
-	strcpy(newMonth, "0");
-	strcpy(newDay, "0");
-	strcpy(newHour, "0");
-	strcpy(newMinute, "0");
+	DateTime now = rtc.now();
+	char year[] = "YYYY";
+	char month[] = "MM";
+	char day[] = "DD";
+	char hour[] = "hh";
+	char minute[] = "mm";
+	strcpy(newYear, now.toString(year));
+	strcpy(newMonth, now.toString(month));
+	strcpy(newDay, now.toString(day));
+	strcpy(newHour, now.toString(hour));
+	strcpy(newMinute, now.toString(minute));
 	strcpy(newNumber, "0");
 	refesh_date_time_Page();
 }
@@ -403,8 +397,6 @@ void loop() {
 		ran = !ran;
 	}
 	if (count == 14000000) {
-		read_Temperatures();
-
 		pMain_update();
 		count = 0;
 	}
@@ -483,7 +475,8 @@ void set_temp_units() {
 	String filedUnits = read_Variable("/tempUnits.txt");
 	filedUnits.toCharArray(varTempUnits, 2);
 	if(strcmp(varTempUnits, "C") == 0) {
-		tUnit1.setText("C");
+
+		tUnit1.setText("C"); // makes a nextion error
 		tUnit2.setText("C");
 	}
 	if(strcmp(varTempUnits, "F") == 0) {
@@ -612,35 +605,4 @@ void button_press(int keyPressed) {
 		strcpy(newMinute, newNumber);
 		nSetMinute.setText(newNumber);
 	}
-}
-
-void time_test(String Source){
-	DateTime now = rtc.now();
-
-	Serial.print("Time Test from: ");
-	Serial.println(Source);
-    Serial.print(now.year(), DEC);
-    Serial.print('/');
-    Serial.print(now.month(), DEC);
-    Serial.print('/');
-    Serial.print(now.day(), DEC);
-	Serial.println(" ");
-
-    Serial.print(now.hour(), DEC);
-    Serial.print(':');
-    Serial.print(now.minute(), DEC);
-    Serial.print(':');
-    Serial.print(now.second(), DEC);
-	Serial.println(" ");
-}
-
-// Conversions by John Boxall at:
-//https://tronixstuff.com/2014/12/01/tutorial-using-ds1307-and-ds3231-real-time-clock-modules-with-arduino/
-// Convert normal decimal numbers to binary coded decimal
-byte decToBcd(byte val){
-  return( (val/10*16) + (val%10) );
-}
-// Convert binary coded decimal to normal decimal numbers
-byte bcdToDec(byte val){
-  return( (val/16*10) + (val%16) );
 }
