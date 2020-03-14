@@ -7,7 +7,6 @@
 #include "SPIFFS.h"
 #include "RTClib.h"
 
-
 #define ONE_WIRE_BUS 4					// One-wire data wire is plugged TO GPIO
 
 RTC_DS3231 rtc;
@@ -20,11 +19,16 @@ uint8_t sensorInside[8] = { 0x28, 0x9B, 0xB0, 0xCF, 0x1B, 0x19, 0x01, 0x30 }; //
 // declare global variables
 long count = 0;					// for the delay loop to call the read_Temperatures function
 bool ran = false;					// used to call the read_Temperatures function on first run thru the loop
-String varTempUnits = "C";		// variable to track temperature unit setting
+char varTempUnits[] = "C";		// variable to track temperature unit setting
 int ActiveDateBox;
-int IntnewYear, IntnewMonth, IntnewDay, IntnewHour, IntnewMinute;
-String newNumber = "";
+char newYear[5];
+char newMonth[6];
+char newDay[3];
+char newHour[3];
+char newMinute[3];
+char newNumber[5];
 char char_array[5];
+char caseTemperature[3];
 
 // declare Nextion objects using the format: Nex????(page, ID, "name")
 // page 0
@@ -41,7 +45,8 @@ NexText tDate = NexText(0, 10, "tDate");
 NexPage pMenu = NexPage(1, 0,"page1");
 NexText tMain = NexText(1, 1, "tMain");				// return to the main page
 NexText tSwapUnits = NexText(1, 2, "tSwapUnits");	// swap temperature units
-NexText tSetDateTime = NexText(1,3, "tSetDateTime");
+NexText tSetDateTime = NexText(1, 3, "tSetDateTime");
+NexText tCaseTemp = NexText(1, 5, "tCaseTemp");
 //page 2
 NexPage pSetDateTime = NexPage(2, 0, "page2");
 NexText tMain2 = NexText(2, 1, "tMain2");
@@ -133,28 +138,27 @@ void setup() {
 
 	sensors.begin();										// Start the temperature sensors
 	rtc.begin();
+	// rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
 	pMain.show();
 	set_temp_units();										// set the temperature units
-
 }
 
 //-------------------------------------------------------
 void nSetYear_Release(void *ptr) {
 	ActiveDateBox = 0;
-	newNumber = "";
+	strcpy(newNumber, "");
 	nSetYear.setText("");
 	t0.setText("EDIT");
 	t1.setText("month");
 	t2.setText("day");
 	t3.setText("hour");
 	t4.setText("minute");
-
 }
 
 //-------------------------------------------------------
 void nSetMonth_Release(void *ptr) {
 	ActiveDateBox = 1;
-	newNumber = "";
+	strcpy(newNumber, "");
 	nSetMonth.setText("");
 	t0.setText("year");
 	t1.setText("EDIT");
@@ -166,7 +170,7 @@ void nSetMonth_Release(void *ptr) {
 //-------------------------------------------------------
 void nSetDay_Release(void *ptr) {
 	ActiveDateBox = 2;
-	newNumber = "";
+	strcpy(newNumber, "");
 	nSetDay.setText("");
 	t0.setText("year");
 	t1.setText("month");
@@ -178,7 +182,7 @@ void nSetDay_Release(void *ptr) {
 //-------------------------------------------------------
 void nSetHour_Release(void *ptr) {
 	ActiveDateBox = 3;
-	newNumber = "";
+	strcpy(newNumber, "");
 	nSetHour.setText("");
 	t0.setText("year");
 	t1.setText("month");
@@ -190,7 +194,7 @@ void nSetHour_Release(void *ptr) {
 //-------------------------------------------------------
 void nSetMinute_Release(void *ptr) {
 	ActiveDateBox = 4;
-	newNumber = "";
+	strcpy(newNumber, "");
 	nSetMinute.setText("");
 	t0.setText("year");
 	t1.setText("month");
@@ -259,67 +263,105 @@ void bNine_Release(void *ptr) {
 
 //-------------------------------------------------------
 void bSet_Release(void *ptr) {
-	rtc.adjust(DateTime(IntnewYear, IntnewMonth, IntnewDay, IntnewHour, IntnewMinute, 0));
+	int count;
+	char space[] = " ";
+	char colon[] = ":";
+	char newTime[10];
+	char newDate[12];
+	char nullSeconds[3] = "00";
+	char setMonths[12][5]{	"Jan ",
+							"Feb ",
+							"Mar ",
+							"Apr ",
+							"May ",
+							"Jun ",
+							"Jul ",
+							"Aug ",
+							"Sep ",
+							"Oct ",
+							"Nov ",
+							"Dec "};
+
+	count = atoi(newMonth);
+	count = count - 1;
+	strcpy(newDate, setMonths[count]);
+	strcat(newDate, newDay);
+	strcat(newDate, space);
+	strcat(newDate, newYear);
+	strcpy(newTime, newHour);
+	strcat(newTime, colon);
+	strcat(newTime, newMinute);
+	strcat(newTime, colon);
+	strcat(newTime, nullSeconds);
+	rtc.adjust(DateTime(F(newDate), F(newTime)));
 	refesh_date_time_Page();
 }
 
 //-------------------------------------------------------
 void tSetDateTime_Release(void *ptr) {
+	DateTime now = rtc.now();
+	char year[] = "YYYY";
+	char month[] = "MM";
+	char day[] = "DD";
+	char hour[] = "hh";
+	char minute[] = "mm";
+	strcpy(newYear, now.toString(year));
+	strcpy(newMonth, now.toString(month));
+	strcpy(newDay, now.toString(day));
+	strcpy(newHour, now.toString(hour));
+	strcpy(newMinute, now.toString(minute));
+	strcpy(newNumber, "0");
 	refesh_date_time_Page();
 }
 
 //-------------------------------------------------------
 void refesh_date_time_Page() {
-	newNumber = "";
 	pSetDateTime.show();
-	char year[5];
-	char month[3];
-	char day[3];
-	char hour[3];
-	char minute[3];
+	char year[] = "YYYY";
+	char month[] = "MM";
+	char day[] = "DD";
+	char hour[] = "hh";
+	char minute[] = "mm";
 
 	DateTime now = rtc.now();
+	strcpy(year, now.toString(year));
+	strcpy(month, now.toString(month));
+	strcpy(day, now.toString(day));
+	strcpy(hour, now.toString(hour));
+	strcpy(minute, now.toString(minute));
 
-	int intYear = now.year();
-	dtostrf(intYear, 5, 0, year);
 	nSetYear.setText(year);
-
-	int intMonth = now.month();
-	dtostrf(intMonth, 3, 0, month);
 	nSetMonth.setText(month);
-
-	int intDay = now.day();
-	dtostrf(intDay, 3, 0, day);
 	nSetDay.setText(day);
-
-	int intHour = now.hour();
-	dtostrf(intHour, 3, 0, hour);
 	nSetHour.setText(hour);
-
-	int intMinute = now.minute();
-	dtostrf(intMinute, 3, 0, minute);
 	nSetMinute.setText(minute);
 }
 
 //-------------------------------------------------------
 void pMain_update(){
-	char char_array[2];
-	varTempUnits.toCharArray(char_array, 2);
-	tUnit1.setText(char_array);
-	tUnit2.setText(char_array);
+	//char char_array[2];
+	//varTempUnits.toCharArray(char_array, 2);
+	tUnit1.setText(varTempUnits);
+	tUnit2.setText(varTempUnits);
 	read_Temperatures();
-	//read_time();
+	read_time();
 }
 
 //-------------------------------------------------------
 void pMenu_update() {
-	varTempUnits = read_Variable("/tempUnits.txt");
-	if (varTempUnits == "C") {
+	String filedUnits = read_Variable("/tempUnits.txt");
+	filedUnits.toCharArray(varTempUnits, 2);
+
+	if(strcmp(varTempUnits, "C") == 0) {
 		tSwapUnits.setText("Change temperature units from C to F");
 	}
-	if (varTempUnits == "F") {
+	if(strcmp(varTempUnits, "F") == 0) {
 		tSwapUnits.setText("Change temperature units from F to C");
 	}
+	int cTemp = rtc.getTemperature();
+
+	itoa(cTemp, caseTemperature, 10);
+	tCaseTemp.setText(caseTemperature);
 }
 
 //-------------------------------------------------------
@@ -336,10 +378,10 @@ void tMenu_Release(void *ptr) {
 
 //-------------------------------------------------------
 void tSwapUnits_Release(void *ptr) {
-	if (varTempUnits == "C") {
+		if(strcmp(varTempUnits, "C") == 0)  {
 		write_Variable("/tempUnits.txt", "F");
 	}
-	if (varTempUnits == "F"){
+		if(strcmp(varTempUnits, "F") == 0) {
 		write_Variable("/tempUnits.txt", "C");
 	}
 	pMenu_update();
@@ -351,15 +393,11 @@ void tSwapUnits_Release(void *ptr) {
 void loop() {
 	nexLoop(nex_listen_list);
 	if (!ran) {
-		read_Temperatures();
-		read_time();
-		//pMain_update();
+		pMain_update();
 		ran = !ran;
 	}
 	if (count == 14000000) {
-		read_Temperatures();
-		read_time();
-		//pMain_update();
+		pMain_update();
 		count = 0;
 	}
 	count = count + 1;
@@ -367,97 +405,81 @@ void loop() {
 
 //-------------------------------------------------------
 void read_time(){
-	String days[]{"Sunday, ",
-				  "Monday, ",
-				  "Tuesday, ",
-				  "Wednesday, ",
-				  "Thursday, ",
-				  "Friday, ",
-				  "Saturday, "};
+	char days[7][12]{	"Sunday, ",
+				  		"Monday, ",
+				  		"Tuesday, ",
+				  		"Wednesday, ",
+				  		"Thursday, ",
+				  		"Friday, ",
+				  		"Saturday, "};
 
-	String months[]{"January, ",
-					  "February, ",
-					  "March, ",
-					  "April, ",
-	 				  "May, ",
-					  "June, ",
-					  "July, ",
-					  "August, ",
-					  "September, ",
-					  "October, ",
-					  "November, ",
-					  "December, "};
-	String myHour;
-	String myMeridiem;
-	String myMinute;
-	String myTime;
-	String myDay;
-	String myDate;
+	char months[12][12]{"January, ",
+					  	"February, ",
+					  	"March, ",
+					  	"April, ",
+	 				  	"May, ",
+					  	"June, ",
+					  	"July, ",
+					  	"August, ",
+					  	"September, ",
+					  	"October, ",
+					  	"November, ",
+					  	"December, "};
+	char buffy[5];
+	char myHour[3];
+	char myMinute[] = "mm";
+	char myTime[6];
+	char myDayName[12];
+	char myDayNo[] = "DD";
+	char myDate[30];
+	char myYear[] = "YYYY";
+	int myAm = 1;
 	DateTime now = rtc.now();
-	myDay = days[now.dayOfTheWeek()];
-		//Serial.print("numeric day of the week: ");
-		//Serial.println(now.dayOfTheWeek());
-		//Serial.print("day of the week from array: ");
-		//Serial.println(days[now.dayOfTheWeek()]);
 
-	myDate = myDay;
-	myDate = myDate + months[now.month()-1];
-		//Serial.print("numeric month: ");
-		//Serial.println(now.month());
-		//Serial.print("month from the array: ");
-		//Serial.println(months[now.month()-1]);
-
-	myDate = myDate + String(now.day()) + ", ";
-		//Serial.print("day number: ");
-		//Serial.println(String(now.day()));
-
-	myDate = myDate + String(now.year());
-	//Serial.print("year number: ");
-	//Serial.println(String(now.year()));
-
+	strcpy(myDate, days[now.dayOfTheWeek()]);
+	strcat(myDate, months[now.month()-1]);
+	strcat(myDate, now.toString(myDayNo));
+	strcat(myDate, ", ");
+	strcat(myDate, now.toString(myYear));
 	int myHourInt = now.hour();
 	if (myHourInt < 13) {
 		if (myHourInt > 0){
-			myHour = String(myHourInt);
+			itoa(myHourInt, buffy, 10);
+			strcpy(myHour, buffy);
 		}
 		if (myHourInt == 0){
-			myHour = 12;
+			strcpy(myHour, "12");
 		}
-		myMeridiem = "AM";
 	}
 	if (myHourInt > 12) {
 		myHourInt = myHourInt - 12;
-		myHour = String(myHourInt);
-		myMeridiem = "PM";
+		itoa(myHourInt, buffy, 10);
+		strcpy(myHour, buffy);
+		myAm = 0;
 	}
-	int intMinute = now.minute();
-		if (intMinute > 9){
-			myMinute = String(intMinute);
-		}
-		if (intMinute < 10){
-			myMinute = "0" + String(intMinute);
-		}
-	myTime = myHour + ":" + myMinute;
-	char screenDate[myDate.length() + 1];
-	char screenTime[myTime.length() + 1];
-	char screenMeridiem[myMeridiem.length() + 1];
-	myDate.toCharArray(screenDate, myDate.length()+1);
-	myTime.toCharArray(screenTime, myTime.length()+1);
-	myMeridiem.toCharArray(screenMeridiem, myMeridiem.length()+1);
-	tDate.setText(screenDate);
-	tTime.setText(screenTime);
-	tAmPm.setText(screenMeridiem);
+	strcat(myHour, ":");
+	strcpy(buffy, now.toString(myMinute));
+	strcat(myHour, myMinute);
+
+	tDate.setText(myDate);
+	tTime.setText(myHour);
+	if (myAm == 1){
+		tAmPm.setText("AM");
+		return;
+	}
+	tAmPm.setText("PM");
 }
 
 //-------------------------------------------------------
 void set_temp_units() {
-	String units = read_Variable("/tempUnits.txt");
-	varTempUnits = units;
-	if (units == "C") {
-		tUnit1.setText("C");
+	String filedUnits = read_Variable("/tempUnits.txt");
+	filedUnits.toCharArray(varTempUnits, 2);
+	if(strcmp(varTempUnits, "C") == 0) {
+
+		tUnit1.setText("C"); // makes a nextion error
 		tUnit2.setText("C");
 	}
-	if (units == "F"){
+	if(strcmp(varTempUnits, "F") == 0) {
 		tUnit1.setText("F");
 		tUnit2.setText("F");
 	}
@@ -473,7 +495,7 @@ void read_Temperatures() {
 	temp1 = sensors.getTempC(sensorOutside);
 	temp2 = sensors.getTempC(sensorInside);
 
-	if (varTempUnits == "F") {
+	if(strcmp(varTempUnits, "F") == 0) {
 		temp1 = (temp1 * 9/5) + 32;
 		temp2 = (temp2 * 9/5) + 32;
 	}
@@ -501,75 +523,86 @@ void write_Variable(String myFile, String myString) {
 
 //-------------------------------------------------------
 void button_press(int keyPressed) {
-
+	char buffy[5];
 	if (ActiveDateBox == 0) { // year
 		if (keyPressed < 10) {
-			if (newNumber.length() > 4) {
+			if (strlen(newNumber) > 4) {
 				return;
 			}
-			newNumber += keyPressed;
+			itoa(keyPressed, buffy, 10);
+			strcat(newNumber, buffy);
 		}
 		if (keyPressed == 10) {
-			newNumber.remove(newNumber.length()-1, 1);
+			if(strlen(newNumber)){  //if it's not empty
+				newNumber[strlen(newNumber) -1] = '\0'; //replace it with a NULL
+			}
 		}
-		IntnewYear = newNumber.toInt();
-		newNumber.toCharArray(char_array, newNumber.length() + 1);
-		nSetYear.setText(char_array);
+		strcpy(newYear, newNumber);
+		nSetYear.setText(newNumber);
 	}
 	if (ActiveDateBox == 1) { // month
 		if (keyPressed < 10) {
-			if (newNumber.length() > 2) {
+			if (strlen(newNumber) > 2) {
 				return;
 			}
-			newNumber += keyPressed;
+			itoa(keyPressed, buffy, 10);
+			strcat(newNumber, buffy);
 		}
 		if (keyPressed == 10) {
-			newNumber.remove(newNumber.length()-1, 1);
+
+			if(strlen(newNumber)){  //if it's not empty
+				newNumber[strlen(newNumber) -1] = '\0'; //replace it with a NULL
+			}
 		}
-		IntnewMonth = newNumber.toInt();
-		newNumber.toCharArray(char_array, newNumber.length() + 1);
-		nSetMonth.setText(char_array);
+		strcpy(newMonth, newNumber);
+		nSetMonth.setText(newNumber);
 	}
 	if (ActiveDateBox == 2) { // day
 		if (keyPressed < 10) {
-			if (newNumber.length() > 2) {
+			if (strlen(newNumber) > 2) {
 				return;
 			}
-			newNumber += keyPressed;
+			itoa(keyPressed, buffy, 10);
+			strcat(newNumber, buffy);
 		}
 		if (keyPressed == 10) {
-			newNumber.remove(newNumber.length()-1, 1);
+			if(strlen(newNumber)){  //if it's not empty
+				newNumber[strlen(newNumber) -1] = '\0'; //replace it with a NULL
+			}
 		}
-		IntnewDay = newNumber.toInt();
-		newNumber.toCharArray(char_array, newNumber.length() + 1);
-		nSetDay.setText(char_array);
+		strcpy(newDay, newNumber);
+		nSetDay.setText(newNumber);
 	}
 	if (ActiveDateBox == 3) { // hour
 		if (keyPressed < 10) {
-			if (newNumber.length() > 2) {
+			if (strlen(newNumber) > 2) {
 				return;
 			}
-			newNumber += keyPressed;
+			itoa(keyPressed, buffy, 10);
+			strcat(newNumber, buffy);
 		}
 		if (keyPressed == 10) {
-			newNumber.remove(newNumber.length()-1, 1);
+			if(strlen(newNumber)){  //if it's not empty
+				newNumber[strlen(newNumber) -1] = '\0'; //replace it with a NULL
+			}
 		}
-		IntnewHour = newNumber.toInt();
-		newNumber.toCharArray(char_array, newNumber.length() + 1);
-		nSetHour.setText(char_array);
+		strcpy(newHour, newNumber);
+		nSetHour.setText(newNumber);
 	}
 	if (ActiveDateBox == 4) { // minute
 		if (keyPressed < 10) {
-			if (newNumber.length() > 2) {
+			if (strlen(newNumber) > 2) {
 				return;
 			}
-			newNumber += keyPressed;
+			itoa(keyPressed, buffy, 10);
+			strcat(newNumber, buffy);
 		}
 		if (keyPressed == 10) {
-			newNumber.remove(newNumber.length()-1, 1);
+			if(strlen(newNumber)){  //if it's not empty
+				newNumber[strlen(newNumber) -1] = '\0'; //replace it with a NULL
+			}
 		}
-		IntnewMinute = newNumber.toInt();
-		newNumber.toCharArray(char_array, newNumber.length() + 1);
-		nSetMinute.setText(char_array);
+		strcpy(newMinute, newNumber);
+		nSetMinute.setText(newNumber);
 	}
 }
