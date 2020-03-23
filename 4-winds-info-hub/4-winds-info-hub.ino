@@ -5,7 +5,7 @@
 #include <DallasTemperature.h>
 #include "FS.h"
 #include "SPIFFS.h"
-#include "RTClib.h"
+#include "RTClib.h"						// Addafruit
 
 #define ONE_WIRE_BUS 4					// One-wire data wire is plugged TO GPIO
 
@@ -74,8 +74,8 @@ NexButton bEight = NexButton(2, 17, "b8");
 NexButton bNine = NexButton(2, 21, "b9");
 NexButton bSet = NexButton(2, 24, "bSet");
 
-
 // declare Nextion objects using the format: Nex????(page, ID, "name")
+
 // enumerate Nextion items to listen for
 NexTouch *nex_listen_list[] = {
 	&tMenu,
@@ -109,17 +109,21 @@ void setup() {
 	Serial.begin(115200);
 	nexInit();
 	SPIFFS.begin();
-	tSwapUnits.attachPop(tSwapUnits_Release, &tSwapUnits);	// attach object from the listen list to a function
+	// attach object from the listen list to a function
+	// items from page 0
 	tMenu.attachPop(tMenu_Release, &tMenu);
-	tMain.attachPop(tMain_Release, &tMain);
 
+	// items from page 1
+	tSwapUnits.attachPop(tSwapUnits_Release, &tSwapUnits);
+	tMain.attachPop(tMain_Release, &tMain);
 	tSetDateTime.attachPop(tSetDateTime_Release, & tSetDateTime);
+
+	// items from page 2
 	nSetYear.attachPop(nSetYear_Release, &nSetYear);
 	nSetMonth.attachPop(nSetMonth_Release, &nSetMonth);
 	nSetDay.attachPop(nSetDay_Release, &nSetDay);
 	nSetHour.attachPop(nSetHour_Release, &nSetHour);
 	nSetMinute.attachPop(nSetMinute_Release, &nSetMinute);
-
 	tMenu2.attachPop(tMenu_Release, &tMenu);
 	tMain2.attachPop(tMain_Release, &tMain);
 	bDelete.attachPop(bDelete_Release, &bDelete);
@@ -135,10 +139,8 @@ void setup() {
 	bNine.attachPop(bNine_Release, &bNine);
 	bSet.attachPop(bSet_Release, &bSet);
 
-
 	sensors.begin();										// Start the temperature sensors
 	rtc.begin();
-	// rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
 	pMain.show();
 	set_temp_units();										// set the temperature units
 }
@@ -311,12 +313,13 @@ void tSetDateTime_Release(void *ptr) {
 	strcpy(newHour, now.toString(hour));
 	strcpy(newMinute, now.toString(minute));
 	strcpy(newNumber, "0");
+	pSetDateTime.show();
 	refesh_date_time_Page();
 }
 
 //-------------------------------------------------------
 void refesh_date_time_Page() {
-	pSetDateTime.show();
+	//pSetDateTime.show();
 	char year[] = "YYYY";
 	char month[] = "MM";
 	char day[] = "DD";
@@ -385,8 +388,8 @@ void tSwapUnits_Release(void *ptr) {
 		write_Variable("/tempUnits.txt", "C");
 	}
 	pMenu_update();
+	pMain_update();
 	pMain.show();
-	count = 13900000;
 }
 
 //***** Main Program Loop **********************************************************************
@@ -426,16 +429,15 @@ void read_time(){
 					  	"November, ",
 					  	"December, "};
 	char buffy[5];
-	char myHour[3];
-	char myMinute[] = "mm";
 	char myTime[6];
 	char myDayName[12];
-	char myDayNo[] = "DD";
 	char myDate[30];
+	char myMinute[] = "mm";
+	char myHour[] = "hh";
+	char myDayNo[] = "DD";
 	char myYear[] = "YYYY";
 	int myAm = 1;
 	DateTime now = rtc.now();
-
 	strcpy(myDate, days[now.dayOfTheWeek()]);
 	strcat(myDate, months[now.month()-1]);
 	strcat(myDate, now.toString(myDayNo));
@@ -444,25 +446,22 @@ void read_time(){
 	int myHourInt = now.hour();
 	if (myHourInt < 13) {
 		if (myHourInt > 0){
-			itoa(myHourInt, buffy, 10);
-			strcpy(myHour, buffy);
+			strcpy(myTime, now.toString(myHour));
 		}
 		if (myHourInt == 0){
-			strcpy(myHour, "12");
+			strcpy(myTime, "12");
 		}
 	}
 	if (myHourInt > 12) {
 		myHourInt = myHourInt - 12;
 		itoa(myHourInt, buffy, 10);
-		strcpy(myHour, buffy);
+		strcpy(myTime, buffy);
 		myAm = 0;
 	}
-	strcat(myHour, ":");
-	strcpy(buffy, now.toString(myMinute));
-	strcat(myHour, myMinute);
-
+	strcat(myTime, ":");
+	strcat(myTime, now.toString(myMinute));
 	tDate.setText(myDate);
-	tTime.setText(myHour);
+	tTime.setText(myTime);
 	if (myAm == 1){
 		tAmPm.setText("AM");
 		return;
@@ -475,7 +474,6 @@ void set_temp_units() {
 	String filedUnits = read_Variable("/tempUnits.txt");
 	filedUnits.toCharArray(varTempUnits, 2);
 	if(strcmp(varTempUnits, "C") == 0) {
-
 		tUnit1.setText("C"); // makes a nextion error
 		tUnit2.setText("C");
 	}
@@ -494,7 +492,6 @@ void read_Temperatures() {
 	sensors.requestTemperatures();
 	temp1 = sensors.getTempC(sensorOutside);
 	temp2 = sensors.getTempC(sensorInside);
-
 	if(strcmp(varTempUnits, "F") == 0) {
 		temp1 = (temp1 * 9/5) + 32;
 		temp2 = (temp2 * 9/5) + 32;
