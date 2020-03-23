@@ -429,11 +429,11 @@ void read_time(){
 					  	"November, ",
 					  	"December, "};
 	char buffy[5];
-	char myHour[3];
 	char myTime[6];
 	char myDayName[12];
 	char myDate[30];
 	char myMinute[] = "mm";
+	char myHour[] = "hh";
 	char myDayNo[] = "DD";
 	char myYear[] = "YYYY";
 	int myAm = 1;
@@ -446,25 +446,22 @@ void read_time(){
 	int myHourInt = now.hour();
 	if (myHourInt < 13) {
 		if (myHourInt > 0){
-			itoa(myHourInt, buffy, 10);
-			strcpy(myHour, buffy);
+			strcpy(myTime, now.toString(myHour));
 		}
 		if (myHourInt == 0){
-			strcpy(myHour, "12");
+			strcpy(myTime, "12");
 		}
 	}
 	if (myHourInt > 12) {
 		myHourInt = myHourInt - 12;
 		itoa(myHourInt, buffy, 10);
-		strcpy(myHour, buffy);
+		strcpy(myTime, buffy);
 		myAm = 0;
 	}
-	strcat(myHour, ":");
-	strcpy(buffy, now.toString(myMinute));
-	strcat(myHour, myMinute);
-
+	strcat(myTime, ":");
+	strcat(myTime, now.toString(myMinute));
 	tDate.setText(myDate);
-	tTime.setText(myHour);
+	tTime.setText(myTime);
 	if (myAm == 1){
 		tAmPm.setText("AM");
 		return;
