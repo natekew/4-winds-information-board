@@ -32,20 +32,20 @@ char caseTemperature[3];
 
 // declare Nextion objects using the format: Nex????(page, ID, "name")
 // page 0
-NexPage pMain = NexPage(0, 0,"page0");
-NexText tTout = NexText(0, 1, "tTout");		// outside temperature
-NexText tTin = NexText(0, 2, "tTin");		// inside temperature
-NexText tUnit1 = NexText(0, 3, "tUnit1");	// outside temperatre units
-NexText tUnit2 = NexText(0, 4, "tUnit2");	// inside tpemperature units
-NexText tTime = NexText(0, 5, "tTime");		// show the time
-NexText tMenu = NexText(0, 6, "tMenu");		// go to the menu page
-NexText tAmPm = NexText(0, 7, "tAmPm");		// show am or pm
-NexText tDate = NexText(0, 10, "tDate");
+NexPage pMain = NexPage(0, 0,"page0");		// page 0
+NexText tTout = NexText(0, 2, "tTout");		// outside temperature
+NexText tTin = NexText(0, 3, "tTin");		// inside temperature
+NexText tUnit1 = NexText(0, 2, "tUnit1");	// outside temperatre units
+NexText tUnit2 = NexText(0, 5, "tUnit2");	// inside tpemperature units
+NexText tTime = NexText(0, 6, "tTime");		// show the time
+NexText tMenu = NexText(0, 7, "tMenu");		// go to the menu page
+NexText tAmPm = NexText(0, 8, "tAmPm");		// show am or pm
+NexText tDate = NexText(0, 11, "tDate");	// date, day, month, year
 //page 1
 NexPage pMenu = NexPage(1, 0,"page1");
-NexText tMain = NexText(1, 1, "tMain");				// return to the main page
-NexText tSwapUnits = NexText(1, 2, "tSwapUnits");	// swap temperature units
-NexText tSetDateTime = NexText(1, 3, "tSetDateTime");
+NexText tMain = NexText(1, 2, "tMain");					// return to the main page
+NexText tSwapUnits = NexText(1, 3, "tSwapUnits");		// swap temperature units
+NexText tSetDateTime = NexText(1, 4, "tSetDateTime");
 NexText tCaseTemp = NexText(1, 5, "tCaseTemp");
 //page 2
 NexPage pSetDateTime = NexPage(2, 0, "page2");
@@ -139,10 +139,10 @@ void setup() {
 	bNine.attachPop(bNine_Release, &bNine);
 	bSet.attachPop(bSet_Release, &bSet);
 
-	sensors.begin();										// Start the temperature sensors
-	rtc.begin();
-	pMain.show();
-	set_temp_units();										// set the temperature units
+	sensors.begin();		// start the temperature sensors
+	rtc.begin();			// start the clock
+	pMain.show();			// show page 0
+	set_temp_units();		// set the temperature units
 }
 
 //-------------------------------------------------------
@@ -521,7 +521,7 @@ void write_Variable(String myFile, String myString) {
 //-------------------------------------------------------
 void button_press(int keyPressed) {
 	char buffy[5];
-	if (ActiveDateBox == 0) { // year
+	if (ActiveDateBox == 0) { 						// year
 		if (keyPressed < 10) {
 			if (strlen(newNumber) > 4) {
 				return;
@@ -530,8 +530,8 @@ void button_press(int keyPressed) {
 			strcat(newNumber, buffy);
 		}
 		if (keyPressed == 10) {
-			if(strlen(newNumber)){  //if it's not empty
-				newNumber[strlen(newNumber) -1] = '\0'; //replace it with a NULL
+			if(strlen(newNumber)){  					//if it's not empty
+				newNumber[strlen(newNumber) -1] = '\0'; //replace last number with a NULL
 			}
 		}
 		strcpy(newYear, newNumber);
@@ -547,8 +547,8 @@ void button_press(int keyPressed) {
 		}
 		if (keyPressed == 10) {
 
-			if(strlen(newNumber)){  //if it's not empty
-				newNumber[strlen(newNumber) -1] = '\0'; //replace it with a NULL
+			if(strlen(newNumber)){  					//if it's not empty
+				newNumber[strlen(newNumber) -1] = '\0'; //replace last number with a NULL
 			}
 		}
 		strcpy(newMonth, newNumber);
@@ -563,8 +563,8 @@ void button_press(int keyPressed) {
 			strcat(newNumber, buffy);
 		}
 		if (keyPressed == 10) {
-			if(strlen(newNumber)){  //if it's not empty
-				newNumber[strlen(newNumber) -1] = '\0'; //replace it with a NULL
+			if(strlen(newNumber)){  					//if it's not empty
+				newNumber[strlen(newNumber) -1] = '\0'; //replace last number with a NULL
 			}
 		}
 		strcpy(newDay, newNumber);
@@ -579,8 +579,8 @@ void button_press(int keyPressed) {
 			strcat(newNumber, buffy);
 		}
 		if (keyPressed == 10) {
-			if(strlen(newNumber)){  //if it's not empty
-				newNumber[strlen(newNumber) -1] = '\0'; //replace it with a NULL
+			if(strlen(newNumber)){  					//if it's not empty
+				newNumber[strlen(newNumber) -1] = '\0'; //replace last number with a NULL
 			}
 		}
 		strcpy(newHour, newNumber);
@@ -596,7 +596,7 @@ void button_press(int keyPressed) {
 		}
 		if (keyPressed == 10) {
 			if(strlen(newNumber)){  //if it's not empty
-				newNumber[strlen(newNumber) -1] = '\0'; //replace it with a NULL
+				newNumber[strlen(newNumber) -1] = '\0'; //replace last number with a NULL
 			}
 		}
 		strcpy(newMinute, newNumber);
