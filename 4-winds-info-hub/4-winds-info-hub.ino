@@ -325,14 +325,12 @@ void refesh_date_time_Page() {
 	char day[] = "DD";
 	char hour[] = "hh";
 	char minute[] = "mm";
-
 	DateTime now = rtc.now();
 	strcpy(year, now.toString(year));
 	strcpy(month, now.toString(month));
 	strcpy(day, now.toString(day));
 	strcpy(hour, now.toString(hour));
 	strcpy(minute, now.toString(minute));
-
 	nSetYear.setText(year);
 	nSetMonth.setText(month);
 	nSetDay.setText(day);
@@ -342,8 +340,6 @@ void refesh_date_time_Page() {
 
 //-------------------------------------------------------
 void pMain_update(){
-	//char char_array[2];
-	//varTempUnits.toCharArray(char_array, 2);
 	tUnit1.setText(varTempUnits);
 	tUnit2.setText(varTempUnits);
 	read_Temperatures();
@@ -354,7 +350,6 @@ void pMain_update(){
 void pMenu_update() {
 	String filedUnits = read_Variable("/tempUnits.txt");
 	filedUnits.toCharArray(varTempUnits, 2);
-
 	if(strcmp(varTempUnits, "C") == 0) {
 		tSwapUnits.setText("Change temperature units from C to F");
 	}
@@ -362,7 +357,6 @@ void pMenu_update() {
 		tSwapUnits.setText("Change temperature units from F to C");
 	}
 	int cTemp = rtc.getTemperature();
-
 	itoa(cTemp, caseTemperature, 10);
 	tCaseTemp.setText(caseTemperature);
 }
@@ -388,8 +382,9 @@ void tSwapUnits_Release(void *ptr) {
 		write_Variable("/tempUnits.txt", "C");
 	}
 	pMenu_update();
-	pMain_update();
 	pMain.show();
+	pMain_update();
+
 }
 
 //***** Main Program Loop **********************************************************************
